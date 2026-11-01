@@ -1,0 +1,12 @@
+emi/
+.git/
+.env
+**/.env
+**/__pycache__/
+**/*.egg-info/
+**/.tmp_dagster_home_*/
+logs/
+**/logs/
+DbtEmirates/target/
+DbtEmirates/dbt_packages/
+.vscode/
