@@ -1,0 +1,39 @@
+version: 2
+
+sources:
+  - name: raw
+    database: emirates
+    schema: public
+    tables:
+      - name: emirates_flights_2024_2026
+        columns:
+          - name: record_id
+            data_tests: [unique, not_null]
+      - name: navaids
+        columns:
+          - name: id
+            data_tests: [unique, not_null]
+      - name: regions
+        columns:
+          - name: id
+            data_tests: [unique, not_null]
+      - name: runways
+        columns:
+          - name: id
+            data_tests: [unique, not_null]
+      - name: countries
+        columns:
+          - name: id
+            data_tests: [unique, not_null]
+      - name: airports
+        columns:
+          - name: id
+            data_tests: [unique, not_null]
+      - name: airport_frequencies
+        columns:
+          - name: id
+            data_tests: [unique, not_null]
+      - name: airport_comments
+        columns:
+          - name: id
+            data_tests: [unique, not_null]

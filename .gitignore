@@ -1,0 +1,38 @@
+# Virtual environment
+emi/
+
+# Secrets
+.env
+*.env
+profiles.yml
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+
+# Dagster local state
+.tmp_dagster_home_*/
+dagster_home/
+history/
+storage/
+schedules/
+
+# dbt artifacts
+DbtEmirates/target/
+DbtEmirates/dbt_packages/
+DbtEmirates/logs/
+
+# Logs
+logs/
+*.log
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

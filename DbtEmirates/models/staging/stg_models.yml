@@ -1,0 +1,74 @@
+version: 2
+
+models:
+  - name: stg_emirates_flights
+    description: One row per Emirates flight from the raw flights file, with types cast and dates parsed.
+    columns:
+      - name: flight_record_id
+        data_tests: [unique, not_null]
+
+  - name: stg_countries
+    description: >
+      One row per country, staged from the raw `countries` table. Parent lookup
+      for airports, regions and navaids: one country has many airports.
+    columns:
+      - name: country_id
+        data_tests: [unique, not_null]
+      - name: country_code
+        description: ISO 3166-1 alpha-2 code. `NA` is Namibia and must never become NULL.
+        data_tests: [unique, not_null]
+      - name: country_name
+        data_tests: [unique, not_null]
+      - name: continent
+        description: Two-letter continent code (AF, AN, AS, EU, NA, OC, SA).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['AF', 'AN', 'AS', 'EU', 'NA', 'OC', 'SA']
+
+  - name: stg_airports
+    columns:
+      - name: airport_id
+        data_tests: [unique, not_null]
+      - name: iso_country
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_countries')
+                field: country_code
+              config:
+                severity: warn
+
+  - name: stg_regions
+    columns:
+      - name: iso_country
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_countries')
+                field: country_code
+              config:
+                severity: warn
+
+  - name: stg_navaids
+    columns:
+      - name: iso_country
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_countries')
+                field: country_code
+              config:
+                severity: warn
+
+  - name: stg_runways
+    columns:
+      - name: airport_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_airports')
+                field: airport_id
+              config:
+                severity: warn

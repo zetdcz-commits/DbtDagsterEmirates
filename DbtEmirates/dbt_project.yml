@@ -1,0 +1,104 @@
+name: 'DbtEmirates'
+version: '1.0.0'
+config-version: 2
+profile: 'DbtEmirates'
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  DbtEmirates:
+    staging:
+      +schema: bronze
+      +materialized: view
+    intermediate:
+      +schema: silver
+      +materialized: table
+
+seeds:
+  DbtEmirates:
+    +schema: public
+    wikipedia_table_1:
+      +column_types:
+        first_flight: integer
+        seats: integer
+        fuel_burn: varchar
+        fuel_per_seat: varchar
+    wikipedia_table_2:
+      +column_types:
+        first_flight: integer
+        seats: integer
+        sector: varchar
+        fuel_burn: varchar
+        fuel_efficiency_per_seat: varchar
+    wikipedia_table_3:
+      +column_types:
+        first_flight: integer
+        seats: integer
+        fuel_burn: varchar
+        fuel_efficiency_per_seat: varchar
+    wikipedia_table_4:
+      +column_types:
+        first_flight: integer
+        seats: integer
+        sector: varchar
+        fuel_burn: varchar
+        fuel_per_seat: varchar
+    wikipedia_table_5:
+      +column_types:
+        first_flight: integer
+        seats: integer
+        sector: varchar
+        fuel_burn: varchar
+        fuel_per_seat: varchar
+    public_holidays:
+      +column_types:
+        holiday_date: date
+        country_code: varchar(2)
+
+# Business rule settings. Every threshold used by the silver models lives here and
+# is documented on the docs home page (models/docs/overview.md). Change the value
+# here, then update the Default column and change log in overview.md.
+vars:
+  # flight status and delays (R01 to R04)
+  cancelled_status_prefix: cancel
+  on_time_threshold_minutes: 15
+  delay_bucket_1_max_minutes: 60
+  delay_bucket_2_max_minutes: 180
+  time_of_day_start_hours:
+    morning: 5
+    afternoon: 12
+    evening: 17
+    night: 22
+
+  # routes and distance (R05 to R09)
+  haul_short_max_km: 1500
+  haul_medium_max_km: 4000
+  distance_mismatch_tolerance_pct: 0.05
+
+  # capacity and revenue (R10 to R14)
+  load_factor_high_pct: 85
+  load_factor_medium_pct: 65
+  load_factor_tolerance_pts: 1
+  revenue_tolerance_usd: 1
+
+  # weather (R15 to R17)
+  low_visibility_km: 5
+  high_wind_kmh: 50
+
+  # holidays and calendar (R18 to R21)
+  holiday_window_days: 3
+  fiscal_year_start_month: 1
+
+  # fuel (R22 to R26)
+  jet_fuel_density_kg_per_l: 0.8
+  litres_per_gallon: 3.78541
+  fuel_price_spike_pct: 0.25
+
+  # fares and seasonality (R27, R28)
+  fare_baseline_min_flights: 5
+  peak_season_index: 1.1
+  off_peak_season_index: 0.9

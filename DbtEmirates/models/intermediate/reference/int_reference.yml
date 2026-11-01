@@ -1,0 +1,85 @@
+version: 2
+
+models:
+  - name: int_airports_iata
+    description: >
+      One open airport per IATA code, so joins from flights never duplicate a flight.
+      Business rule R09 (see the project overview page).
+    columns:
+      - name: iata_code
+        description: '{{ doc("iata_code") }}'
+        data_tests: [unique, not_null]
+      - name: iso_country
+        description: '{{ doc("country_code") }}'
+
+  - name: int_airports_enriched
+    description: >
+      One row per airport (not per IATA code) with country, region and infrastructure
+      facts: runways, navaids, radio frequencies and pilot comments. Business rule R31.
+    columns:
+      - name: airport_id
+        data_tests: [unique, not_null]
+      - name: has_tower_frequency
+        description: True when the airport has a radio frequency of type TWR (tower).
+      - name: has_lighted_runway
+        description: True when at least one runway is lighted and not closed.
+
+  - name: int_calendar
+    description: >
+      One row per day for whole calendar years covering the flight dates, like a Power BI
+      date table. Business rules R20 and R21.
+    columns:
+      - name: date_day
+        data_tests: [unique, not_null]
+      - name: date_key
+        description: Date as an integer, for example 20261215.
+        data_tests: [unique, not_null]
+      - name: is_weekend
+        description: Saturday or Sunday. The same for every country (rule R20).
+      - name: fiscal_year
+        description: Named for the calendar year the fiscal year ends in (rule R21).
+
+  - name: int_holidays
+    description: >
+      One row per country and holiday date. Holidays belong to a country. Business rule R18.
+    columns:
+      - name: holiday_key
+        description: Country code and date, for example AE-2026-12-02.
+        data_tests: [unique, not_null]
+      - name: country_code
+        description: '{{ doc("country_code") }}'
+        data_tests: [not_null]
+      - name: holiday_group
+        description: '{{ doc("holiday_group") }}'
+        data_tests: [not_null]
+
+  - name: int_country_calendar
+    description: >
+      One row per date and country with a public holiday flag: the SQL version of a Power BI
+      date table with an IsHoliday column. Business rule R18.
+    columns:
+      - name: country_date_key
+        data_tests: [unique, not_null]
+      - name: is_public_holiday
+        data_tests: [not_null]
+
+  - name: int_jet_fuel_prices_monthly
+    description: >
+      One row per month with the jet fuel price in US dollars per gallon. Months without a
+      reported price carry the latest earlier price and are flagged. Business rules R24 and R25.
+    columns:
+      - name: price_month
+        description: First day of the month.
+        data_tests: [unique, not_null]
+      - name: usd_per_gallon
+        description: '{{ doc("usd_per_gallon") }}'
+        data_tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: is_carried_forward
+        description: True when the month has no reported price and uses the latest earlier month.
+        data_tests: [not_null]
+      - name: is_price_spike
+        description: True when the month-on-month change is above the spike threshold (rule R25).
+        data_tests: [not_null]

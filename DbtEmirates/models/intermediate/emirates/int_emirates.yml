@@ -1,0 +1,341 @@
+version: 2
+
+# Rule IDs (R01, R02, ...) refer to the business rules table on the docs home page
+# (models/docs/overview.md). Thresholds are variables in dbt_project.yml.
+
+models:
+  # ---------------------------------------------------------------- flight level
+  - name: int_emirates_flight_routes
+    description: >
+      One row per flight: route keys, haul type, international flag and airport details
+      including the ISO country of each end. Business rules R05, R06 and R09.
+    columns:
+      - name: flight_record_id
+        description: '{{ doc("flight_record_id") }}'
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_emirates_flights')
+                field: flight_record_id
+      - name: route
+        description: '{{ doc("route") }}'
+        data_tests: [not_null]
+      - name: route_pair
+        description: Route with the two airport codes sorted, so DXB-CAI and CAI-DXB match (rule R30).
+        data_tests: [not_null]
+      - name: haul_type
+        description: Short, medium or long haul from the distance in the flights file (rule R05).
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['short_haul', 'medium_haul', 'long_haul']
+      - name: origin_iso_country
+        description: ISO country of the origin airport. Null when the airport code is not in the airports file.
+      - name: destination_iso_country
+        description: ISO country of the destination airport. Null when the airport code is not in the airports file.
+
+  - name: int_emirates_flight_distance
+    description: >
+      One row per flight: great-circle distance from airport coordinates, compared with the
+      distance in the flights file. Business rules R07 and R08.
+    columns:
+      - name: flight_record_id
+        description: '{{ doc("flight_record_id") }}'
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_emirates_flights')
+                field: flight_record_id
+      - name: great_circle_km
+        description: Haversine distance in km. Null when an airport has no coordinates.
+        data_tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: distance_km_used
+        description: Great-circle distance, or the distance in the flights file when coordinates are missing.
+        data_tests: [not_null]
+      - name: distance_mismatch
+        description: True when the computed and file distances differ by more than the tolerance.
+        data_tests: [not_null]
+
+  - name: int_emirates_flight_delays
+    description: >
+      One row per flight: scheduled and actual times, delays, on-time and cancelled flags,
+      delay bucket and departure time of day. Business rules R01 to R04.
+    columns:
+      - name: flight_record_id
+        description: '{{ doc("flight_record_id") }}'
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_emirates_flights')
+                field: flight_record_id
+      - name: is_cancelled
+        data_tests: [not_null]
+      - name: is_on_time
+        description: '{{ doc("is_on_time") }}'
+        data_tests: [not_null]
+      - name: arrival_delay_bucket
+        description: Cancelled, on_time, delayed_short, delayed_medium or delayed_long (rule R03).
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['cancelled', 'on_time', 'delayed_short', 'delayed_medium', 'delayed_long']
+      - name: departure_time_of_day
+        description: Morning, afternoon, evening or night from the scheduled departure hour (rule R04).
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['morning', 'afternoon', 'evening', 'night']
+
+  - name: int_emirates_flight_capacity
+    description: >
+      One row per flight: aircraft, seats, passengers and load factor, with data quality flags.
+      Business rules R10 to R12.
+    columns:
+      - name: flight_record_id
+        description: '{{ doc("flight_record_id") }}'
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_emirates_flights')
+                field: flight_record_id
+      - name: load_factor_band
+        description: High, medium or low load factor (rule R10).
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['high', 'medium', 'low']
+      - name: load_factor_mismatch
+        data_tests: [not_null]
+      - name: is_over_capacity
+        data_tests: [not_null]
+
+  - name: int_emirates_flight_revenue
+    description: >
+      One row per flight: fares, revenue per passenger and per seat, and revenue per available
+      seat km. Business rules R13 and R14.
+    columns:
+      - name: flight_record_id
+        description: '{{ doc("flight_record_id") }}'
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_emirates_flights')
+                field: flight_record_id
+      - name: revenue_mismatch
+        data_tests: [not_null]
+
+  - name: int_emirates_flight_weather
+    description: >
+      One row per flight: weather readings and low-visibility, high-wind and adverse-weather flags. Business rules R15 to R17.
+    columns:
+      - name: flight_record_id
+        description: '{{ doc("flight_record_id") }}'
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_emirates_flights')
+                field: flight_record_id
+      - name: is_adverse_weather
+        data_tests: [not_null]
+
+  - name: int_emirates_flight_gate_ops
+    description: >
+      One row per flight: terminal, gate and baggage belt assignment.
+    columns:
+      - name: flight_record_id
+        description: '{{ doc("flight_record_id") }}'
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_emirates_flights')
+                field: flight_record_id
+
+  - name: int_emirates_flight_fuel
+    description: >
+      One row per flight: estimated fuel burn in kg, litres and gallons, and the fuel cost at the
+      month's jet fuel price. Business rules R22 to R24 and R26. Burn rates in the
+      aircraft_fuel_burn seed are placeholders until replaced with sourced figures.
+    columns:
+      - name: flight_record_id
+        description: '{{ doc("flight_record_id") }}'
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_emirates_flights')
+                field: flight_record_id
+      - name: fuel_burn_kg
+        description: Distance times the aircraft's kg per km. Null when the aircraft model is missing from the aircraft_fuel_burn seed.
+        data_tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: usd_per_gallon
+        description: '{{ doc("usd_per_gallon") }}'
+        data_tests:
+          - not_null:
+              config:
+                severity: warn
+
+  - name: int_emirates_flight_calendar
+    description: >
+      One row per flight: calendar attributes and the nearest holiday at the origin and at the
+      destination country, with a holiday period flag and group. Business rules R18 to R20.
+    columns:
+      - name: flight_record_id
+        description: '{{ doc("flight_record_id") }}'
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_emirates_flights')
+                field: flight_record_id
+      - name: is_holiday_period
+        description: '{{ doc("is_holiday_period") }}'
+        data_tests: [not_null]
+      - name: holiday_period_group
+        description: >
+          Group of the closer holiday when the flight is in a holiday period (origin wins a tie),
+          otherwise null. See rule R19.
+
+  - name: int_emirates_flight_quality_flags
+    description: >
+      One row per flight: every data quality flag in one place, with an issue count.
+      Business rule R29.
+    columns:
+      - name: flight_record_id
+        description: '{{ doc("flight_record_id") }}'
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_emirates_flights')
+                field: flight_record_id
+      - name: issue_count
+        data_tests: [not_null]
+      - name: has_any_issue
+        data_tests: [not_null]
+
+  - name: int_emirates_flight_fare_index
+    description: >
+      One row per flight: the fare compared with the non-holiday baseline for the same route and
+      ticket class. Business rule R27.
+    columns:
+      - name: flight_record_id
+        description: '{{ doc("flight_record_id") }}'
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_emirates_flights')
+                field: flight_record_id
+      - name: fare_index
+        description: '{{ doc("fare_index") }}'
+        data_tests:
+          - not_null:
+              config:
+                severity: warn
+
+  - name: int_emirates_flight_fuel_margin
+    description: >
+      One row per flight: revenue after estimated fuel cost, fuel share of revenue and margin per
+      available seat km. Not profit. Business rule R26.
+    columns:
+      - name: flight_record_id
+        description: '{{ doc("flight_record_id") }}'
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_emirates_flights')
+                field: flight_record_id
+
+  # ------------------------------------------------------- route and aggregates
+  - name: int_emirates_routes
+    description: One row per route pair, with flight counts, dates, distance, haul type and region. Business rules R05, R06 and R30.
+    columns:
+      - name: route_pair
+        data_tests: [unique, not_null]
+
+  - name: int_emirates_route_monthly
+    description: >
+      One row per route and month: flights, cancellations, passengers, load factor, punctuality
+      and revenue. Business rule R02.
+    columns:
+      - name: route_month_key
+        data_tests: [unique, not_null]
+
+  - name: int_emirates_aircraft_summary
+    description: >
+      One row per aircraft model: flights, passengers, load factor, punctuality and revenue. Business rule R02.
+    columns:
+      - name: aircraft_model
+        data_tests: [unique, not_null]
+
+  - name: int_emirates_holiday_fare_impact
+    description: >
+      One row per route and ticket class: average fare in holiday periods against other periods.
+      Only routes and classes with both are kept. Business rules R19 and R27.
+    columns:
+      - name: route_class_key
+        data_tests: [unique, not_null]
+      - name: holiday_price_uplift_pct
+        description: Average fare index in holiday periods minus 1, as a percentage.
+
+  - name: int_emirates_holiday_group_impact
+    description: >
+      One row per holiday group and haul type: fare index, load factor and punctuality. The group
+      'none' is the non-holiday baseline. Business rules R19 and R27.
+    columns:
+      - name: group_haul_key
+        data_tests: [unique, not_null]
+
+  - name: int_emirates_route_seasonality
+    description: >
+      One row per route, ticket class and calendar month: average fare against the route's
+      average, with a peak or off-peak label. Business rule R28.
+    columns:
+      - name: route_class_month_key
+        data_tests: [unique, not_null]
+      - name: season_label
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['peak', 'normal', 'off_peak']
+
+  - name: int_emirates_fuel_fare_monthly
+    description: >
+      One row per route and month: average fare, fuel cost per passenger and the fuel share of the fare. Business rules R24 and R26.
+    columns:
+      - name: route_month_key
+        data_tests: [unique, not_null]
+
+  - name: int_emirates_airport_daily_ops
+    description: >
+      One row per origin airport and day: departures, cancellations, punctuality, weather and
+      whether it is a public holiday in the airport's country. Business rules R02, R17 and R18.
+    columns:
+      - name: airport_day_key
+        data_tests: [unique, not_null]
