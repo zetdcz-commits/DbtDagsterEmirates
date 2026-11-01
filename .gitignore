@@ -4,7 +4,7 @@ emi/
 # Secrets
 .env
 *.env
-profiles.yml
+
 
 # Python
 __pycache__/
