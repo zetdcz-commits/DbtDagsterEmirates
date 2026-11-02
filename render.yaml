@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: emirates-dagster-web
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    region: ohio
+    plan: starter
+    healthCheckPath: /server_info
+    envVars:
+      - fromGroup: emirates-env
+
+  - type: worker
+    name: emirates-dagster-daemon
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: dagster-daemon run -w workspace.yaml
+    region: ohio
+    plan: starter
+    envVars:
+      - fromGroup: emirates-env

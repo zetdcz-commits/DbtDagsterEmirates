@@ -2,8 +2,8 @@ version: 2
 
 sources:
   - name: raw
-    database: emirates
-    schema: public
+
+    schema: "{{ env_var('DBT_RAW_SCHEMA', 'public') }}"
     tables:
       - name: emirates_flights_2024_2026
         columns:
